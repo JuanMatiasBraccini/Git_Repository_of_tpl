@@ -339,7 +339,8 @@ PARAMETER_SECTION
    number Tag_NLL_c;
    number Tag_NLL_a;
    number Tag_like;
-   number fpen_tag;
+   //number fpen_tag;
+   
   
    //Declare objects used in Size_transition_matrix()
    3darray STM(1,N_sex,1,N_inc,1,N_inc) // size transition matrix
@@ -373,7 +374,7 @@ PARAMETER_SECTION
    //vector Virgin_Recruitment(1,nzone)
    sdreport_vector Virgin_Recruitment(1,nzone)
    vector Init_Recruitment(1,nzone)
-   number R_prop_pen
+   //number R_prop_pen
    number Init_rec_pen
 
    //Declare objects used in Virgin_conditions()
@@ -632,8 +633,9 @@ FUNCTION Age_and_growth
    
 FUNCTION Move_rate
   Tag_NLL_c.initialize();                         
-  Tag_NLL_a.initialize();  
-  fpen_tag.initialize();
+  Tag_NLL_a.initialize();
+  //fpen_tag.initialize();
+
 
   //1. extract movement parameters and add penalty to rowsum to 1
   alpha11=exp(p11)/(1+exp(p11));
@@ -832,7 +834,7 @@ FUNCTION Calc_len_distn_for_init_popn
     //2. calculate numbers at size considering growth of each size class and survival
     //note: grow animals, to determine numbers surviving in each length
     //           class after mortality and growth
-    
+
     N_Len = 0;   // set numbers to zero before multiplying by growth transition matrix
     if (a == 1) // recruits - don't grow as recruits already have sizes
     {  
@@ -860,8 +862,9 @@ FUNCTION Calc_len_distn_for_init_popn
        PerRec_Exp_Age_Comp(s,a) = sum(N_Len(s));
     }
         
-   } // a   
+   } // a
   }//s
+  
   
 
 FUNCTION Calc_init_spawn_biom_per_recruit
@@ -880,7 +883,7 @@ FUNCTION Calc_init_spawn_biom_per_recruit
  
 FUNCTION Calc_stock_rec_params_and_init_recruitment
 
-   R_prop_pen.initialize();
+   //R_prop_pen.initialize();
    
    //back transform estimable pars
    R_zero=mfexp(lnR_zero);                //Total recruitment
@@ -889,12 +892,17 @@ FUNCTION Calc_stock_rec_params_and_init_recruitment
      R_zero_prop(1)=1;
    }else
    {
-     R_zero_prop(1)=R_prop_west;   //proportion of total recruitment per zone
-     R_zero_prop(2)=R_prop_zn1;
+     R_zero_prop(1)= exp(R_prop_west)/(1+exp(R_prop_west)+exp(R_prop_zn1));   //proportion of total recruitment per zone
+     R_zero_prop(2)=exp(R_prop_zn1)/(1+exp(R_prop_west)+exp(R_prop_zn1));
      R_zero_prop(3)=1-(R_zero_prop(1)+R_zero_prop(2));
-     R_zero_prop(3)=posfun(R_zero_prop(3),0.000001,R_prop_pen);   //penalty to keep sum of Rec prop =1
-     R_prop_pen += (1.0 - sum(R_zero_prop)) * (1.0 - sum(R_zero_prop));
-     R_zero_prop=R_zero_prop/sum(R_zero_prop);  //normalise           
+     //R_zero_prop=R_zero_prop/sum(R_zero_prop);  //normalise
+     //R_zero_prop(1)=R_prop_west;   //proportion of total recruitment per zone
+     //R_zero_prop(2)=R_prop_zn1;
+     //R_zero_prop(3)=1-(R_zero_prop(1)+R_zero_prop(2));
+     //R_zero_prop(3)=posfun(R_zero_prop(3),0.000001,R_prop_pen);   //penalty to keep sum of Rec prop =1
+     //R_prop_pen += (1.0 - sum(R_zero_prop)) * (1.0 - sum(R_zero_prop));
+     //R_zero_prop=R_zero_prop/sum(R_zero_prop);  //normalise           
+
    }
    
              
@@ -1061,10 +1069,11 @@ FUNCTION Population_dynamics
         //store total mortality per sex, zone, time and size bin
         Annual_Z(s,t,z,i) = Z_in_len_class;
 
-       } // i              
+       } // i
+       
     } // z
-
-
+    
+    
     //3. Calculate the expected recruitment by zone, for following year
     Rec_temp=0;
     if(s==1)
@@ -1324,10 +1333,10 @@ FUNCTION Calc_marginal_distn_for_len_in_each_yr
       {
        for (i=1; i<=N_inc;i++)                                    //loop over size bins
        {
-         Exp_catch_num_6_5(s,t,z) += Est_catch_num_in_len_class_6_5(s,t,z,i);
+          Exp_catch_num_6_5(s,t,z) += Est_catch_num_in_len_class_6_5(s,t,z,i);
           Exp_catch_num_7(s,t,z) += Est_catch_num_in_len_class_7(s,t,z,i);
        }  //i
-      } //z
+       } //z
      } //t
 
      // calculate expected catch proportions
@@ -1335,16 +1344,15 @@ FUNCTION Calc_marginal_distn_for_len_in_each_yr
      {
       for(z=1; z<=nzone;z++)                                      //loop over zones
       {
-       for (i=1; i<=N_inc;i++)                                    //loop over size bins
-       {
+        for (i=1; i<=N_inc;i++)                                    //loop over size bins
+        {
          Est_Prop_at_len_6_5(s,t,z,i) = Est_catch_num_in_len_class_6_5(s,t,z,i) / Exp_catch_num_6_5(s,t,z);
          Est_Prop_at_len_7(s,t,z,i) = Est_catch_num_in_len_class_7(s,t,z,i) / Exp_catch_num_7(s,t,z);
 
            //output estimated prop at size in nice format   
           Est_Prop_at_len_6_5_out(s,z,t,i)=Est_Prop_at_len_6_5(s,t,z,i);
-          Est_Prop_at_len_7_out(s,z,t,i)=Est_Prop_at_len_7(s,t,z,i);
-          
-       } //i
+          Est_Prop_at_len_7_out(s,z,t,i)=Est_Prop_at_len_7(s,t,z,i);          
+        } //i      
       } //z
      } //t
   }//s
@@ -1707,7 +1715,8 @@ FUNCTION Calc_obj_function
    Penalties=0;
    //if(!last_phase())
    //{
-     Penalties=1e1*CatchPen+1e5*R_prop_pen+1e5*fpen_tag+1e2*Init_rec_pen;     
+     Penalties=1e1*CatchPen+1e2*Init_rec_pen;
+     //Penalties=1e1*CatchPen+1e5*R_prop_pen+1e5*fpen_tag+1e2*Init_rec_pen;
    //}
    
    f = rho2 * Growth_NLL + rho3 * CPUE_NLL + rho * Len_comp_NLL + Penalties + Tag_NLL_a + Tag_NLL_c;
@@ -1848,9 +1857,9 @@ REPORT_SECTION
 TOP_OF_MAIN_SECTION
 	time(&start);
 	// arrmblsize = 50000000;
-	// gradient_structure::set_GRADSTACK_BUFFER_SIZE(1.e7);
-	// gradient_structure::set_CMPDIF_BUFFER_SIZE(1.e7);
-	// gradient_structure::set_MAX_NVAR_OFFSET(5000);
+	// gradient_structure::set_GRADSTACK_BUFFER_SIZE(1.e6);
+	// gradient_structure::set_CMPDIF_BUFFER_SIZE(1.e6);
+	// gradient_structure::set_MAX_NVAR_OFFSET(100000);
 	// gradient_structure::set_NUM_DEPENDENT_VARIABLES(5000);
  arrmblsize=8000000;
  gradient_structure::set_NUM_DEPENDENT_VARIABLES(1800);
